@@ -1,0 +1,10 @@
+source 'https://rubygems.org'
+
+ruby '2.6.3'
+
+gem 'minitest'
+gem 'minitest-reporters'
+gem 'stamp'
+gem 'rake'
+gem 'pry'
+gem 'pry-byebug'
