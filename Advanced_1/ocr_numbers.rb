@@ -2,7 +2,7 @@
 
 require 'pry'
 
-class OCR
+class SingleOCR
   NUM_HASH = {
     " _\n| |\n|_|\n" => '0',
     "\n  |\n  |\n" => '1',
@@ -23,42 +23,41 @@ class OCR
     @word_count = (text.split("\n")[0].size + 1) / 3
   end
 
-  def translate
-    result = []
+  def word_one
     word_one = []
-    if text.split("\n")[0][0..1] == "  "
-      word_one << ""
-    else
-      word_one << text.split("\n")[0][0..1]
-    end
-    word_one << text.split("\n")[1][0..2]
-    word_one << text.split("\n")[2][0..2]
-    result << (word_one.join("\n") + "\n")
+    lead_char = text.split("\n")[0][0..1]
+    word_one << (lead_char == '  ' ? '' : lead_char)
+    [1, 2].each { |v| word_one << text.split("\n")[v][0..2] }
+    word_one.join("\n") + "\n"
+  end
 
-    counter = 1
-    loop do
-      break if counter == word_count
-      word = []
-      if text.split("\n")[0][3 * counter..3 * counter + 2] == "   "
-        word << ""
-      else
-        word << text.split("\n")[0][3 * counter..3 * counter + 1]
-      end
-      word << text.split("\n")[1][3 * counter..3 * counter + 2].rstrip
-      word << text.split("\n")[2][3 * counter..3 * counter + 2].rstrip
-      result << (word.join("\n") + "\n")
-      counter += 1
+  def line_parse(line, counter)
+    text.split("\n")[line][3 * counter..3 * counter + 2]
+  end
+
+  def word_parse(counter)
+    word = []
+    chunk = text.split("\n")[0][3 * counter..3 * counter + 1]
+    word << (line_parse(0, counter) == '   ' ? '' : chunk)
+    [1, 2].each { |v| word << line_parse(v, counter).rstrip }
+    word
+  end
+
+  def translate
+    result = [word_one]
+    (1..word_count - 1).each do |counter|
+      result << (word_parse(counter).join("\n") + "\n")
     end
     result
   end
 
   def convert
     if text.split("\n")[0].size <= 2
-      NUM_HASH.keys.include?(text) ? NUM_HASH[text] : '?'
+      NUM_HASH.key?(text) ? NUM_HASH[text] : '?'
     else
       translate.map do |word|
         # binding.pry
-        NUM_HASH.keys.include?(word) ? NUM_HASH[word] : '?'
+        NUM_HASH.key?(word) ? NUM_HASH[word] : '?'
       end.join
     end
   end
@@ -67,13 +66,35 @@ end
 # if text.split("\n")[0].size == 5
 #   word_one = []
 #       if text.split("\n")[0][0..1] == " "
-#   word_1 = text.split("\n")[0][0..1] + text.split("\n")[1][0..2] + text.split("\n")[2][0..2]
+#   word_1 = text.split("\n")[0][0..1]
+#   + text.split("\n")[1][0..2]
+#   + text.split("\n")[2][0..2]
 
-    text = <<-NUMBER.chomp
-    _  _     _  _  _  _  _  _
-  | _| _||_||_ |_   ||_||_|| |
-  ||_  _|  | _||_|  ||_| _||_|
+class OCR
+  attr_reader :text_arr
 
-    NUMBER
+  def initialize(text)
+    @text_arr = text.split("\n\n")
+  end
 
-puts OCR.new(text).convert
+  def convert
+    @text_arr.map { |num| SingleOCR.new(num).convert }.join(',')
+  end
+end
+
+# text = <<-NUMBER.chomp
+#     _  _
+#   | _| _|
+#   ||_  _|
+
+#     _  _
+# |_||_ |_
+#   | _||_|
+
+#  _  _  _
+#   ||_||_|
+#   ||_| _|
+
+# NUMBER
+
+# puts OCR.new(text).convert
